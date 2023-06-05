@@ -17,10 +17,10 @@ from BotGPT.models import Dialog, Message
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
 openai.api_key = TOKEN_OPENAI
-import logging
 
 # Настройка логгера
 logging.basicConfig(level=logging.ERROR)
+print('Start Bot!')
 
 
 class Command(BaseCommand):
@@ -29,8 +29,6 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         sync_to_async(executor.start_polling(dp, skip_updates=True))
 
-
-# Обработчик исключений для бота
 
 # Настройка логгера
 logging.basicConfig(level=logging.ERROR)
@@ -55,9 +53,12 @@ logger.addHandler(file_handler)
 async def error_handler(update, exception):
     # Логирование исключения в файл
     logger.error(f"An error occurred: {exception}")
-
-    # Отправка сообщения об ошибке в чат или выполнение других действий
-    await update.message.reply("Произошла ошибка. Пожалуйста, повторите позже.")
+    if str(exception).find('Please try again in 20s') != -1:
+        # Отправка сообщения об ошибке в чат или выполнение других действий
+        await update.message.reply("Я не такой быстрый, столько много сообщений не приму!.")
+    else:
+        # Отправка сообщения об ошибке в чат или выполнение других действий
+        await update.message.reply("Произошла ошибка. Пожалуйста, повторите позже.")
 
 
 # Обработчик ошибки асинхронных операций
@@ -118,7 +119,7 @@ async def delete_dialog(message: types.Message):
 
     # Удаляем каждый диалог с помощью синхронного вызова delete()
     for dialog in dialogs:
-        dialog.delete()
+        await sync_to_async(dialog.delete)()
 
     # Получаем сообщения, связанные с удаленными диалогами
     messages = await sync_to_async(Message.objects.filter)(dialog__username=dialog_str)
@@ -128,7 +129,7 @@ async def delete_dialog(message: types.Message):
 
     # Удаляем каждое сообщение с помощью синхронного вызова delete()
     for message in messages:
-        message.delete()
+        await sync_to_async(message.delete)()
 
     await message.reply("Диалог с ассистентом удален.")
 

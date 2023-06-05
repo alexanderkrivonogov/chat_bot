@@ -1,7 +1,5 @@
 from django.db import models
 
-from django.db import models
-
 
 class Dialog(models.Model):
     username = models.CharField(max_length=255)
