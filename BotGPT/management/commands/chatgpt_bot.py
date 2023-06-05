@@ -6,11 +6,10 @@ from aiogram.dispatcher import Dispatcher
 from aiogram.utils import executor
 from django.contrib.sessions.backends.base import UpdateError
 
-from .config import TOKEN, TOKEN_OPENAI
+from bot_web_db.settings import TOKEN, TOKEN_OPENAI
 
 from asgiref.sync import sync_to_async
 from django.core.management.base import BaseCommand
-from django.conf import settings
 
 from BotGPT.models import Dialog, Message
 
