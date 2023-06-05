@@ -1,17 +1,18 @@
 import logging
 import asyncio
+import os
+
 import openai
 from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher
 from aiogram.utils import executor
 from django.contrib.sessions.backends.base import UpdateError
 
-from bot_web_db.settings import TOKEN, TOKEN_OPENAI
-
 from asgiref.sync import sync_to_async
 from django.core.management.base import BaseCommand
 
 from BotGPT.models import Dialog, Message
+from bot_web_db.settings import TOKEN, TOKEN_OPENAI
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
