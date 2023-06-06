@@ -14,10 +14,6 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv, find_dotenv
 
-load_dotenv(find_dotenv())
-TOKEN = os.environ.get('TOKEN', default='None')
-TOKEN_OPENAI = os.environ.get('TOKEN_OPENAI', default='None')
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -122,3 +118,7 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+load_dotenv(find_dotenv())
+TOKEN = os.environ.get('TOKEN', default='None')
+TOKEN_OPENAI = os.environ.get('TOKEN_OPENAI', default='None')
