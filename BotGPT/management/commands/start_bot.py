@@ -165,7 +165,7 @@ async def cmd_search_text(message: types.Message, state: FSMContext):
 
     if photo_path:
         # Выполняем распознавание текста
-        detected_text = search_text(photo_path, lang1='rus', lang2='eng')
+        detected_text = search_text(photo_path, lang1='eng', lang2='rus')
 
         # Отправляем результат распознавания
         await message.reply(f"Распознанный текст:\n\n{detected_text}")
