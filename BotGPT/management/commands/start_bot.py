@@ -5,7 +5,12 @@ import os
 import openai
 from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils import executor
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters.state import State, StatesGroup
+
 from django.contrib.sessions.backends.base import UpdateError
 
 from asgiref.sync import sync_to_async
@@ -13,10 +18,17 @@ from django.core.management.base import BaseCommand
 
 from BotGPT.models import Dialog, Message
 from bot_web_db.settings import TOKEN, TOKEN_OPENAI
+from search_text.main import search_text
 
 bot = Bot(token=TOKEN)
-dp = Dispatcher(bot)
+dp = Dispatcher(bot, storage=MemoryStorage())
 openai.api_key = TOKEN_OPENAI
+
+
+class SearchState(StatesGroup):
+    awaiting_photo = State()
+    searching_text = State()
+
 
 # Настройка логгера
 logging.basicConfig(level=logging.ERROR)
@@ -105,6 +117,63 @@ def save_assistant_message(dialog, answer):
     dialog_obj, _ = Dialog.objects.get_or_create(username=f"{dialog}", role=role_assistant)
     assistant_message = Message(dialog=dialog_obj, role=role_assistant, content=answer)
     assistant_message.save()
+
+
+@dp.message_handler(commands='start')
+async def start_bot(message: types.Message):
+    button_1 = KeyboardButton('/chatgpt')
+    button_2 = KeyboardButton('/search_text_by_photo')
+    keyword_mk = ReplyKeyboardMarkup().add(button_1, button_2)
+    await message.answer('Привет. Нажми на кнопку что ты хочешь\n'
+                         '/chatgpt - начнет чат с ботом\n'
+                         '/search_text_by_photo - поиск текста по фото', reply_markup=keyword_mk)
+
+
+@dp.message_handler(commands='chatgpt')
+async def chat_text(message: types.Message):
+    button_1 = KeyboardButton('/delete_dialog')
+    keyboard_mk = ReplyKeyboardMarkup().add(button_1)
+    await message.answer('Задавай свой вопрос! \n'
+                         '/delete_dialog - удалить диалог', reply_markup=keyboard_mk)
+
+
+@dp.message_handler(commands='search_text_by_photo')
+async def cmd_search(message: types.Message):
+    await message.reply("Привет! Отправьте мне фотографию для распознавания текста.")
+    await SearchState.awaiting_photo.set()
+
+
+@dp.message_handler(content_types=types.ContentTypes.PHOTO, state=SearchState.awaiting_photo)
+async def process_photo(message: types.Message, state: FSMContext):
+    # Сохраняем фотографию в состоянии
+    photo = message.photo[-1]
+    file_name = f'photo_{message.from_user.id}.jpg'
+    file_path = os.path.join('static', file_name)
+    await photo.download(destination_file=file_path)
+    await state.update_data(photo_path=file_path)
+
+    # Переходим в состояние ожидания команды поиска
+    await message.reply("Фотография получена. Отправьте команду /search для распознавания текста.")
+    await SearchState.searching_text.set()
+
+
+@dp.message_handler(commands="search", state=SearchState.searching_text)
+async def cmd_search_text(message: types.Message, state: FSMContext):
+    # Получаем сохраненный путь к фотографии из состояния
+    data = await state.get_data()
+    photo_path = data.get("photo_path")
+
+    if photo_path:
+        # Выполняем распознавание текста
+        detected_text = search_text(photo_path, lang1='rus', lang2='eng')
+
+        # Отправляем результат распознавания
+        await message.reply(f"Распознанный текст:\n\n{detected_text}")
+    else:
+        await message.reply("Фотография не найдена.")
+
+    # Сбрасываем состояние
+    await state.finish()
 
 
 @dp.message_handler(commands=['delete_dialog'])
